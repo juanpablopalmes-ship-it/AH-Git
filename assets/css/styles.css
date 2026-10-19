@@ -548,7 +548,13 @@ h1, h2, h3, h4, h5, h6, p { margin: 0; }
   gap: 20px;
   background: var(--beige);
   transform: rotateY(180deg);
+  visibility: hidden;
 }
+
+/* WebKit puede pintar descendientes de la cara invertida pese al backface.
+   main.js sincroniza la visibilidad con el ángulo real durante el giro. */
+.servicio__flip.is-back-visible .servicio__face--front { visibility: hidden; }
+.servicio__flip.is-back-visible .servicio__face--back { visibility: visible; }
 
 .servicio.is-expanded .servicio__flip,
 .servicio:focus-visible .servicio__flip { transform: rotateY(180deg); }

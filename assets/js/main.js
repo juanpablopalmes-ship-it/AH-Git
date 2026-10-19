@@ -295,12 +295,44 @@
     var cards = Array.prototype.slice.call(document.querySelectorAll('[data-servicio]'));
     if (!cards.length) return;
     var canHover = window.matchMedia('(hover: hover)');
+    var syncFaces = cards.map(function (card) {
+      var flip = card.querySelector('.servicio__flip');
+      var frame;
+      function syncFace() {
+        var transform = getComputedStyle(flip).transform;
+        var back = transform !== 'none' && new DOMMatrixReadOnly(transform).m11 < 0;
+        flip.classList.toggle('is-back-visible', back);
+      }
+      function track() {
+        syncFace();
+        frame = requestAnimationFrame(track);
+      }
+      flip.addEventListener('transitionrun', function (e) {
+        if (e.target !== flip) return;
+        cancelAnimationFrame(frame);
+        track();
+      });
+      function stop(e) {
+        if (e.target !== flip) return;
+        cancelAnimationFrame(frame);
+        syncFace();
+      }
+      flip.addEventListener('transitionend', stop);
+      flip.addEventListener('transitioncancel', stop);
+      // Sin transición (reduced motion), hover/foco y tap se actualizan al instante.
+      ['mouseenter', 'mouseleave', 'focus', 'blur'].forEach(function (type) {
+        card.addEventListener(type, syncFace);
+      });
+      syncFace();
+      return syncFace;
+    });
 
     document.addEventListener('click', function (e) {
       if (canHover.matches) return;
       var hit = e.target.closest ? e.target.closest('[data-servicio]') : null;
-      cards.forEach(function (card) {
+      cards.forEach(function (card, i) {
         card.classList.toggle('is-expanded', card === hit && !card.classList.contains('is-expanded'));
+        syncFaces[i]();
       });
     });
   })();
