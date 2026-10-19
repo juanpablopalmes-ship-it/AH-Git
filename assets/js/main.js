@@ -12,11 +12,14 @@
   (function nav() {
     var nav = document.getElementById('nav');
     if (!nav) return;
+    var fixed = nav.closest('.nav-fixed');
+    var lastScrollY = Math.max(0, window.scrollY);
     var burger = nav.querySelector('.nav__burger');
     var links = Array.prototype.slice.call(nav.querySelectorAll('.nav__links a'));
 
     function setOpen(open) {
       nav.classList.toggle('is-open', open);
+      if (open) fixed.classList.remove('is-hidden');
       burger.setAttribute('aria-expanded', open ? 'true' : 'false');
       burger.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
     }
@@ -35,7 +38,21 @@
       return { a: a, el: document.getElementById(id) };
     }).filter(function (t) { return t.el; });
 
+    nav.addEventListener('focusin', function () {
+      fixed.classList.remove('is-hidden');
+      lastScrollY = Math.max(0, window.scrollY);
+    });
+
     function onScroll() {
+      var y = Math.max(0, window.scrollY);
+      var delta = y - lastScrollY;
+      if (y <= 80 || nav.classList.contains('is-open') || nav.querySelector(':focus-visible')) {
+        fixed.classList.remove('is-hidden');
+        lastScrollY = y;
+      } else if (Math.abs(delta) > 8) {
+        fixed.classList.toggle('is-hidden', delta > 0);
+        lastScrollY = y;
+      }
       nav.classList.toggle('is-scrolled', window.scrollY > 10);
       var line = window.scrollY + window.innerHeight * 0.35;
       var current = targets[0];
@@ -311,11 +328,27 @@
     var wrap = document.querySelector('[data-whatsapp]');
     if (!wrap) return;
     var closeBtn = wrap.querySelector('[data-whatsapp-close]');
-    if (sessionStorage.getItem('ah-whatsapp-dismissed') === '1') wrap.classList.add('is-dismissed');
-    closeBtn.addEventListener('click', function (e) {
-      e.preventDefault();
+    var timer;
+    function dismiss() {
+      // No quitar el control de cierre mientras se usa con el teclado o el mouse.
+      if (wrap.matches(':hover') || wrap.contains(document.activeElement)) {
+        timer = setTimeout(dismiss, 2000);
+        return;
+      }
+      close();
+    }
+    function close() {
+      clearTimeout(timer);
       wrap.classList.add('is-dismissed');
       try { sessionStorage.setItem('ah-whatsapp-dismissed', '1'); } catch (err) {}
+    }
+    try {
+      if (sessionStorage.getItem('ah-whatsapp-dismissed') === '1') wrap.classList.add('is-dismissed');
+    } catch (err) {}
+    if (!wrap.classList.contains('is-dismissed')) timer = setTimeout(dismiss, 6000);
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      close();
     });
   })();
 
